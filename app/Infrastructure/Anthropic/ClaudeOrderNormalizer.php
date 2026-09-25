@@ -179,7 +179,8 @@ final class ClaudeOrderNormalizer implements OrderNormalizer
             - Fix any value you normalized incorrectly.
             - If the raw data itself is inconsistent, keep the raw values and explain it
               in raw_anomalies. Never invent or adjust values just to make totals match.
-            - Keep the raw_anomalies that still apply.
+            - raw_anomalies describes problems in the raw data only: keep the ones that
+              still apply, and do not mention your own corrections.
             PROMPT;
     }
 
