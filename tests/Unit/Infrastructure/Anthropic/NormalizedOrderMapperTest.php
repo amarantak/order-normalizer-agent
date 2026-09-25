@@ -88,6 +88,38 @@ final class NormalizedOrderMapperTest extends TestCase
         (new NormalizedOrderMapper())->map($data, 'pos2');
     }
 
+    // toArray() es la inversa de map(): ir y volver tiene que dar el mismo Order.
+    // Se pasa por json_encode/json_decode porque así viaja de verdad hacia y desde Claude.
+    public function test_to_array_round_trips_to_the_same_order(): void
+    {
+        $mapper = new NormalizedOrderMapper();
+        $data = [
+            ...$this->sumUpData(),
+            'extra_charges' => [['label' => 'coperto', 'amount' => 4.00]],
+            'tip' => 19.99,  // el caso de float que no es exacto
+        ];
+        $order = $mapper->map($data, 'pos2');
+
+        $json = json_decode(json_encode($mapper->toArray($order)), true);
+
+        $this->assertEquals($order, $mapper->map($json, 'pos2'));
+    }
+
+    // Lo que ve Claude: decimales (no centavos), sin "source", fecha ISO y null donde corresponde.
+    public function test_to_array_uses_schema_format(): void
+    {
+        $mapper = new NormalizedOrderMapper();
+        $order = $mapper->map([...$this->sumUpData(), 'timestamp' => null], 'pos1');
+
+        $array = $mapper->toArray($order);
+
+        $this->assertEquals(12.5, $array['items'][0]['unit_price']);
+        $this->assertEquals(27.5, $array['total']);
+        $this->assertNull($array['tip']);
+        $this->assertNull($array['timestamp']);
+        $this->assertArrayNotHasKey('source', $array);
+    }
+
     // Respuesta de Claude para el pedido del POS 1 (SumUp), ya normalizada.
     private function sumUpData(): array
     {

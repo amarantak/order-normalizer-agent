@@ -7,8 +7,10 @@ use App\Domain\Order\Order;
 use App\Domain\Order\OrderItem;
 use DateTimeImmutable;
 
-// Traduce el JSON normalizado que devuelve Claude (decimales, snake_case, fecha en texto)
-// a objetos del dominio (centavos, camelCase, DateTimeImmutable).
+// Traduce entre el JSON normalizado de Claude (decimales, snake_case, fecha en texto)
+// y los objetos del dominio (centavos, camelCase, DateTimeImmutable), en los dos sentidos:
+// - map():     Claude -> dominio (después de normalizar o corregir)
+// - toArray(): dominio -> Claude (para mostrarle su respuesta anterior en la corrección)
 // Es el "borde" entre el contrato con Claude y el modelo de negocio: es el único lugar
 // del sistema que sabe que Claude habla en decimales.
 final class NormalizedOrderMapper
@@ -37,6 +39,39 @@ final class NormalizedOrderMapper
             timestamp: $this->timestamp($data),
             rawAnomalies: $this->list($data, 'raw_anomalies'),
         );
+    }
+
+    /**
+     * Operación inversa de map(): Order -> array con la forma de NormalizedOrderSchema.
+     * Cumple que map(toArray($order), $source) devuelve un Order igual al original.
+     *
+     * @return array<string, mixed>
+     */
+    public function toArray(Order $order): array
+    {
+        return [
+            'order_id' => $order->orderId,
+            // Sin "source": no está en el schema (lo decide nuestro código).
+            'items' => array_map(fn(OrderItem $item) => [
+                'name' => $item->name,
+                'quantity' => $item->quantity,                          // entero, como en el schema
+                'unit_price' => $this->decimal($item->unitPriceCents),  // 1250 -> 12.5
+                'line_total' => $this->decimal($item->lineTotalCents),
+            ], $order->items),
+            'subtotal' => $this->decimal($order->subtotalCents),
+            'extra_charges' => array_map(fn(ExtraCharge $charge) => [
+                'label' => $charge->label,
+                'amount' => $this->decimal($charge->amountCents),
+            ], $order->extraCharges),
+            // null se mantiene null: "sin propina" no es lo mismo que "propina 0".
+            'tip' => $order->tipCents === null ? null : $this->decimal($order->tipCents),
+            'total' => $this->decimal($order->totalCents),
+            'currency' => $order->currency,
+            // DATE_ATOM = ISO 8601 con zona (2026-09-15T20:14:00+00:00), el formato que acepta map().
+            // ?-> devuelve null si no hay fecha, sin tener que escribir el if.
+            'timestamp' => $order->timestamp?->format(DATE_ATOM),
+            'raw_anomalies' => $order->rawAnomalies,
+        ];
     }
 
     private function mapItem(mixed $item): OrderItem
@@ -90,6 +125,15 @@ final class NormalizedOrderMapper
             throw new InvalidClaudeResponseException("Field \"{$key}\" must be a number.");
         }
         return (int) round($value * 100);
+    }
+
+    // Centavos -> decimal: la inversa de cents(), por eso está al lado.
+    // Dividir un int por 100 da el float más cercano (1999 -> 19.99), y json_encode lo escribe
+    // como 19.99; al volver con cents() se recupera el mismo int.
+    // Devuelve int|float porque una división exacta da int en PHP (400 / 100 = 4).
+    private function decimal(int $cents): int|float
+    {
+        return $cents / 100;
     }
 
     private function nullableCents(array $data, string $key): ?int
