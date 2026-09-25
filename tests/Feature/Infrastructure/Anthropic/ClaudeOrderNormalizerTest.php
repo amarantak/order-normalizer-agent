@@ -2,12 +2,14 @@
 
 namespace Tests\Feature\Infrastructure\Anthropic;
 
+use App\Domain\Order\Order;
 use App\Infrastructure\Anthropic\ClaudeOrderNormalizer;
 use App\Infrastructure\Anthropic\InvalidClaudeResponseException;
 use App\Infrastructure\Anthropic\NormalizedOrderMapper;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Sleep;
+use LogicException;
 use Tests\TestCase;
 
 // Extiende el TestCase de Laravel: Http::fake() necesita la app levantada.
@@ -38,13 +40,14 @@ final class ClaudeOrderNormalizerTest extends TestCase
 
         $this->normalizer()->normalize($this->rawOrder(), 'pos1');
 
-        Http::assertSent(fn(Request $request) =>
+        Http::assertSent(
+            fn(Request $request) =>
             $request->hasHeader('x-api-key', 'test-key')
-            && $request->hasHeader('anthropic-version', '2023-06-01')
-            && $request['model'] === 'test-model'
-            && str_contains($request['system'], 'normalization agent')
-            && str_contains($request['messages'][0]['content'], 'SU-4471')
-            && $request['output_config']['format']['type'] === 'json_schema'
+                && $request->hasHeader('anthropic-version', '2023-06-01')
+                && $request['model'] === 'test-model'
+                && str_contains($request['system'], 'normalization agent')
+                && str_contains($request['messages'][0]['content'], 'SU-4471')
+                && $request['output_config']['format']['type'] === 'json_schema'
         );
     }
 
@@ -88,6 +91,55 @@ final class ClaudeOrderNormalizerTest extends TestCase
         $this->normalizer()->normalize($this->rawOrder(), 'pos1');
     }
 
+    // ---- Corrección (paso 3 del loop) ----
+
+    // La corrección devuelve el Order que manda Claude, con el source que decide nuestro código.
+    public function test_correction_returns_corrected_order(): void
+    {
+        Http::fake(['api.anthropic.com/*' => Http::response($this->claudeResponse())]);
+
+        $order = $this->normalizer()->correct($this->rawOrder(), $this->previousOrder(), [$this->violation()], 'pos1');
+
+        $this->assertSame(2500, $order->items[0]->lineTotalCents);  // el valor corregido
+        $this->assertSame('pos1', $order->source);
+    }
+
+    // Verifica la conversación: crudo (user) -> respuesta anterior (assistant) -> violaciones (user),
+    // con el mismo system prompt y el mismo schema que la normalización.
+    public function test_correction_request_contains_raw_previous_answer_and_violations(): void
+    {
+        Http::fake(['api.anthropic.com/*' => Http::response($this->claudeResponse())]);
+
+        $this->normalizer()->correct($this->rawOrder(), $this->previousOrder(), [$this->violation()], 'pos1');
+
+        Http::assertSent(
+            fn(Request $request) =>
+            count($request['messages']) === 3
+                && $request['messages'][0]['role'] === 'user'
+                && str_contains($request['messages'][0]['content'], 'SU-4471')         // el crudo
+                && $request['messages'][1]['role'] === 'assistant'
+                && str_contains($request['messages'][1]['content'], '"line_total":24')  // el valor mal
+                && $request['messages'][2]['role'] === 'user'
+                && str_contains($request['messages'][2]['content'], $this->violation())
+                && str_contains($request['system'], 'normalization agent')
+                && $request['output_config']['format']['type'] === 'json_schema'
+        );
+    }
+
+    // Sin violaciones no hay nada que corregir: es un error del que llama, y no se llama a la API.
+    public function test_correction_without_violations_is_rejected(): void
+    {
+        Http::fake();
+
+        try {
+            $this->normalizer()->correct($this->rawOrder(), $this->previousOrder(), [], 'pos1');
+            $this->fail('Expected LogicException');
+        } catch (LogicException) {
+        }
+
+        Http::assertNothingSent();
+    }
+
     private function normalizer(): ClaudeOrderNormalizer
     {
         return new ClaudeOrderNormalizer(new NormalizedOrderMapper(), 'test-key', 'test-model', '2023-06-01');
@@ -108,10 +160,36 @@ final class ClaudeOrderNormalizerTest extends TestCase
         ];
     }
 
+    // Resultado anterior con un error: line_total de la pizza 24.00 en vez de 25.00.
+    private function previousOrder(): Order
+    {
+        $data = $this->normalizedData();
+        $data['items'][0]['line_total'] = 24.00;
+
+        return (new NormalizedOrderMapper())->map($data, 'pos1');
+    }
+
+    // Mensaje con el formato que usa OrderConsistencyValidator.
+    private function violation(): string
+    {
+        return 'Item "Pizza Margherita": line_total 24.00 != quantity 2 × unit_price 12.50 (expected 25.00).';
+    }
+
     // Imita la respuesta de la API: el JSON normalizado viaja como texto en content[0].text.
     private function claudeResponse(string $stopReason = 'end_turn'): array
     {
-        $normalized = [
+        return [
+            'type' => 'message',
+            'role' => 'assistant',
+            'content' => [['type' => 'text', 'text' => json_encode($this->normalizedData())]],
+            'stop_reason' => $stopReason,
+        ];
+    }
+
+    // Pedido del POS 1 ya normalizado, correcto (como lo devolvería Claude).
+    private function normalizedData(): array
+    {
+        return [
             'order_id' => 'SU-4471',
             'items' => [
                 ['name' => 'Pizza Margherita', 'quantity' => 2, 'unit_price' => 12.50, 'line_total' => 25.00],
@@ -124,13 +202,6 @@ final class ClaudeOrderNormalizerTest extends TestCase
             'currency' => 'EUR',
             'timestamp' => '2026-09-15T20:14:00Z',
             'raw_anomalies' => ['subtotal calculated from items'],
-        ];
-
-        return [
-            'type' => 'message',
-            'role' => 'assistant',
-            'content' => [['type' => 'text', 'text' => json_encode($normalized)]],
-            'stop_reason' => $stopReason,
         ];
     }
 }
