@@ -1,0 +1,12 @@
+{
+    "orderId": "IT-9932",
+    "lines": [
+        { "item": "Margherita Pizza", "quantity": 2, "unitPrice": 13.00 },
+        { "item": "Coca-Cola", "quantity": 1, "unitPrice": 2.80 }
+    ],
+    "coperto": 4.00,
+    "mancia": 5.00,
+    "totale": 37.80,
+    "valuta": "EUR",
+    "data": "15/09/2026 20:14"
+}

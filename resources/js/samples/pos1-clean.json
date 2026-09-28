@@ -1,0 +1,10 @@
+{
+    "order_ref": "SU-4471",
+    "products": [
+        { "desc": "Pizza Margherita", "qty": 2, "price": 12.50 },
+        { "desc": "Coca-Cola", "qty": 1, "price": 2.50 }
+    ],
+    "amount_total": 27.50,
+    "curr": "EUR",
+    "created_at": "2026-09-15T20:14:00Z"
+}

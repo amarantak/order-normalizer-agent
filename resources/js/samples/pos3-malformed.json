@@ -1,0 +1,8 @@
+{
+    "id": "3321",
+    "items": [
+        { "product": "Pizza Margherita", "cant": 2, "precio": "12.50" }
+    ],
+    "total": null,
+    "moneda": "EUR"
+}
