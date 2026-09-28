@@ -11,7 +11,8 @@ interface OrderNormalizer
      * @param array<string, mixed> $rawOrder  JSON crudo del POS, ya decodificado a array
      * @param string               $source    identificador de la fuente (ej. "pos1")
      *
-     * @throws InvalidOrderException si el resultado no tiene forma de pedido válido
+     * @throws InvalidOrderException             si el resultado no tiene forma de pedido válido
+     * @throws OrderNormalizationFailedException si el normalizador no pudo producir un resultado
      */
     public function normalize(array $rawOrder, string $source): Order;
 
@@ -23,7 +24,8 @@ interface OrderNormalizer
      * @param list<string>         $violations lo que devolvió OrderConsistencyValidator::validate()
      * @param string               $source     identificador de la fuente (ej. "pos1")
      *
-     * @throws InvalidOrderException si el resultado no tiene forma de pedido válido
+     * @throws InvalidOrderException             si el resultado no tiene forma de pedido válido
+     * @throws OrderNormalizationFailedException si el normalizador no pudo producir un resultado
      */
     public function correct(array $rawOrder, Order $previous, array $violations, string $source): Order;
 }

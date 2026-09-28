@@ -3,6 +3,7 @@
 namespace Tests\Feature\Infrastructure\Anthropic;
 
 use App\Domain\Order\Order;
+use App\Domain\Order\OrderNormalizationFailedException;
 use App\Infrastructure\Anthropic\ClaudeOrderNormalizer;
 use App\Infrastructure\Anthropic\InvalidClaudeResponseException;
 use App\Infrastructure\Anthropic\NormalizedOrderMapper;
@@ -78,6 +79,17 @@ final class ClaudeOrderNormalizerTest extends TestCase
         }
 
         Http::assertSentCount(1);
+    }
+
+    // El orquestador captura la excepción del dominio, sin conocer a Claude:
+    // una falla de la API tiene que llegarle como OrderNormalizationFailedException.
+    public function test_api_failure_is_reported_as_domain_exception(): void
+    {
+        Http::fake(['api.anthropic.com/*' => Http::response(['error' => ['message' => 'Bad request']], 400)]);
+
+        $this->expectException(OrderNormalizationFailedException::class);
+
+        $this->normalizer()->normalize($this->rawOrder(), 'pos1');
     }
 
     // Respuesta cortada por max_tokens: el JSON está incompleto, se rechaza.
