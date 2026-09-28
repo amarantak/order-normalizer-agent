@@ -185,6 +185,8 @@ final class ClaudeOrderNormalizer implements OrderNormalizer
     }
 
     // Reglas de negocio de la normalización. La forma de la respuesta la garantiza el schema.
+    // Dos bloques separados: qué hacer con los datos (Rules) y qué reportar (raw_anomalies).
+    // Lo comparten normalize() y correct(): la definición de "anomalía" vive en un solo lugar.
     private function systemPrompt(): string
     {
         return <<<'PROMPT'
@@ -195,17 +197,30 @@ final class ClaudeOrderNormalizer implements OrderNormalizer
 
             Rules:
             - Amounts are decimals in currency units (12.50, not 1250).
-            - If a field is missing but can be calculated from others (e.g. total from
-              subtotal + extra_charges + tip), calculate it and note it in raw_anomalies.
+            - If a field can be calculated from others (e.g. subtotal from the items, or
+              total from subtotal + extra_charges + tip), calculate it.
             - Any charge that is not an item or the tip (e.g. "coperto", cover or service
               charge) goes into extra_charges, with its original name as label.
-            - If there is no tip, use null.
-            - If a value has the wrong type (e.g. a price as a string), convert it and
-              note it in raw_anomalies.
+            - If there is no tip, use null. If there are no extra charges, use [].
+            - If a value has the wrong type (e.g. a price as a string), convert it.
             - timestamp must be ISO 8601 (YYYY-MM-DDTHH:MM:SS). Include a timezone only if
-              the source has one; never invent it. If there is no date, use null and note
-              it in raw_anomalies.
-            - Write raw_anomalies as short technical notes in English.
+              the source has one; never invent it. If there is no date, use null.
+            - Never invent or adjust values to make totals match. If raw values are
+              inconsistent with each other, keep them as they are.
+
+            raw_anomalies lists problems in the raw data, as short technical notes in English.
+            Note:
+            - a value with the wrong type
+            - a field that is present but null or empty
+            - a value in a non-standard format (e.g. a date that is not ISO 8601, or has no timezone)
+            - data that cannot be recovered (e.g. no date at all)
+            - raw values that are inconsistent with each other (e.g. the total does not match the items)
+            Do not note normal normalization work:
+            - calculating a field the source format does not include (e.g. subtotal)
+            - the absence of optional concepts (no tip, no extra charges)
+            - renaming or translating fields
+            - equivalent reformatting (e.g. "Z" written as "+00:00")
+            An empty list is the expected result for a clean order.
             PROMPT;
     }
 }
