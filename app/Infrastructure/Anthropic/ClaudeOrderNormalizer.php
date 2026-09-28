@@ -209,7 +209,9 @@ final class ClaudeOrderNormalizer implements OrderNormalizer
               inconsistent with each other, keep them as they are.
 
             raw_anomalies lists problems in the raw data, as short technical notes in English.
+            Refer to fields by their name in the raw data, not by their name in the response schema.
             Note:
+            
             - a value with the wrong type
             - a field that is present but null or empty
             - a value in a non-standard format (e.g. a date that is not ISO 8601, or has no timezone)
