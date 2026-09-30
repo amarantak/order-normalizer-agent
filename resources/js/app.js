@@ -1,5 +1,3 @@
-import './bootstrap'; // configuración de axios que trae Laravel (se decide si se usa en el paso del Ajax)
-
 import { createApp } from 'vue';
 import NormalizerApp from './components/NormalizerApp.vue';
 
