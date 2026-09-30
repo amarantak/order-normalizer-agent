@@ -19,4 +19,19 @@ final class NormalizerPageTest extends TestCase
             ->assertViewIs('normalizer')                           // la ruta / muestra la vista correcta
             ->assertSee('<div id="app"></div>', escape: false);   // el punto donde se monta Vue
     }
+
+    public function test_home_exposes_the_csrf_token_for_fetch(): void
+    {
+        $this->withoutVite();
+
+        $response = $this->get('/');
+
+        // El JS lee el token de este meta y lo manda en el header X-CSRF-TOKEN.
+        // Sin él (o con content vacío), POST /orders/normalize responde 419.
+        // [^"]+ exige al menos un carácter: no alcanza con que exista la etiqueta.
+        $this->assertMatchesRegularExpression(
+            '/<meta name="csrf-token" content="[^"]+">/',
+            $response->getContent()
+        );
+    }
 }
