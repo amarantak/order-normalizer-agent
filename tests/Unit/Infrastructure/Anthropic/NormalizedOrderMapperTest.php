@@ -10,10 +10,10 @@ use PHPUnit\Framework\TestCase;
 // Cada test le pasa un array como el que devolvería Claude (ya decodificado).
 final class NormalizedOrderMapperTest extends TestCase
 {
-    // Pedido del POS español: decimales -> centavos, fecha ISO -> DateTimeImmutable.
+    // Pedido del POS 1: decimales -> centavos, fecha ISO -> DateTimeImmutable.
     public function test_maps_order_to_domain(): void
     {
-        $order = (new NormalizedOrderMapper())->map($this->sumUpData(), 'pos1');
+        $order = (new NormalizedOrderMapper())->map($this->pos1Data(), 'pos1');
 
         $this->assertSame('SU-4471', $order->orderId);
         $this->assertSame(1250, $order->items[0]->unitPriceCents);
@@ -26,16 +26,16 @@ final class NormalizedOrderMapperTest extends TestCase
     // El source lo decide nuestro código, no lo que diga Claude en el JSON.
     public function test_uses_source_from_caller_not_from_claude(): void
     {
-        $order = (new NormalizedOrderMapper())->map($this->sumUpData(), 'pos1');
+        $order = (new NormalizedOrderMapper())->map($this->pos1Data(), 'pos1');
 
         $this->assertSame('pos1', $order->source);
     }
 
-    // Pedido italiano: el coperto va a extra_charges y la mancia a tip.
+    // Pedido del POS 2: el coperto va a extra_charges y la mancia a tip.
     public function test_maps_extra_charges_and_tip(): void
     {
         $data = [
-            ...$this->sumUpData(),
+            ...$this->pos1Data(),
             'extra_charges' => [['label' => 'coperto', 'amount' => 4.00]],
             'tip' => 5.00,
         ];
@@ -50,7 +50,7 @@ final class NormalizedOrderMapperTest extends TestCase
     // 19.99 * 100 en float da 1998.9999999999998: sin round() se perdería un centavo.
     public function test_rounds_decimals_to_exact_cents(): void
     {
-        $data = [...$this->sumUpData(), 'total' => 19.99];
+        $data = [...$this->pos1Data(), 'total' => 19.99];
 
         $order = (new NormalizedOrderMapper())->map($data, 'pos1');
 
@@ -60,7 +60,7 @@ final class NormalizedOrderMapperTest extends TestCase
     // timestamp null es válido: el POS 3 no manda fecha.
     public function test_accepts_null_timestamp(): void
     {
-        $data = [...$this->sumUpData(), 'timestamp' => null];
+        $data = [...$this->pos1Data(), 'timestamp' => null];
 
         $order = (new NormalizedOrderMapper())->map($data, 'pos3');
 
@@ -69,7 +69,7 @@ final class NormalizedOrderMapperTest extends TestCase
 
     public function test_missing_field_is_rejected(): void
     {
-        $data = $this->sumUpData();
+        $data = $this->pos1Data();
         unset($data['total']);
 
         $this->expectException(InvalidClaudeResponseException::class);
@@ -78,10 +78,10 @@ final class NormalizedOrderMapperTest extends TestCase
         (new NormalizedOrderMapper())->map($data, 'pos1');
     }
 
-    // Si Claude no convirtió la fecha a ISO (ej. dejó el formato italiano), es respuesta inválida.
+    // Si Claude no convirtió la fecha a ISO (ej. dejó el formato del POS 2), es respuesta inválida.
     public function test_non_iso_timestamp_is_rejected(): void
     {
-        $data = [...$this->sumUpData(), 'timestamp' => '15/09/2026 20:14'];
+        $data = [...$this->pos1Data(), 'timestamp' => '15/09/2026 20:14'];
 
         $this->expectException(InvalidClaudeResponseException::class);
 
@@ -94,7 +94,7 @@ final class NormalizedOrderMapperTest extends TestCase
     {
         $mapper = new NormalizedOrderMapper();
         $data = [
-            ...$this->sumUpData(),
+            ...$this->pos1Data(),
             'extra_charges' => [['label' => 'coperto', 'amount' => 4.00]],
             'tip' => 19.99,  // el caso de float que no es exacto
         ];
@@ -109,7 +109,7 @@ final class NormalizedOrderMapperTest extends TestCase
     public function test_to_array_uses_schema_format(): void
     {
         $mapper = new NormalizedOrderMapper();
-        $order = $mapper->map([...$this->sumUpData(), 'timestamp' => null], 'pos1');
+        $order = $mapper->map([...$this->pos1Data(), 'timestamp' => null], 'pos1');
 
         $array = $mapper->toArray($order);
 
@@ -120,12 +120,12 @@ final class NormalizedOrderMapperTest extends TestCase
         $this->assertArrayNotHasKey('source', $array);
     }
 
-    // Respuesta de Claude para el pedido del POS 1 (SumUp), ya normalizada.
-    private function sumUpData(): array
+    // Respuesta de Claude para el pedido del POS 1, ya normalizada.
+    private function pos1Data(): array
     {
         return [
             'order_id' => 'SU-4471',
-            'source' => 'SumUp',
+            'source' => 'not-our-source', // distinto de 'pos1': prueba que map() lo ignora
             'items' => [
                 ['name' => 'Pizza Margherita', 'quantity' => 2, 'unit_price' => 12.50, 'line_total' => 25.00],
                 ['name' => 'Coca-Cola', 'quantity' => 1, 'unit_price' => 2.50, 'line_total' => 2.50],

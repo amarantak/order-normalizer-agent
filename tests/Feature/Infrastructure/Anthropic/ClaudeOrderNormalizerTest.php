@@ -157,7 +157,7 @@ final class ClaudeOrderNormalizerTest extends TestCase
         return new ClaudeOrderNormalizer(new NormalizedOrderMapper(), 'test-key', 'test-model', '2023-06-01');
     }
 
-    // Pedido crudo del POS 1 (SumUp), como lo manda el POS.
+    // Pedido crudo del POS 1, como lo manda el POS.
     private function rawOrder(): array
     {
         return [
@@ -213,7 +213,7 @@ final class ClaudeOrderNormalizerTest extends TestCase
             'total' => 27.50,
             'currency' => 'EUR',
             'timestamp' => '2026-09-15T20:14:00Z',
-            'raw_anomalies' => ['subtotal calculated from items'],
+            'raw_anomalies' => [],
         ];
     }
 }
