@@ -30,14 +30,10 @@ async function analyze() {
 </script>
 
 <template>
-    <main class="mx-auto max-w-2xl p-8">
-        <h1 class="text-2xl font-semibold text-slate-900">
-            Order Normalizer Agent
-        </h1>
-
+    <div>
         <button
             type="button"
-            class="mt-6 rounded-md bg-slate-900 px-4 py-2 text-white hover:bg-slate-700 disabled:opacity-50"
+            class="rounded-md bg-slate-900 px-4 py-2 text-white hover:bg-slate-700 disabled:opacity-50"
             :disabled="loading"
             @click="analyze"
         >
@@ -51,5 +47,5 @@ async function analyze() {
             class="mt-4 overflow-x-auto rounded-md bg-slate-900 p-4 text-sm text-slate-100"
             >{{ JSON.stringify(result, null, 2) }}</pre
         >
-    </main>
+    </div>
 </template>
