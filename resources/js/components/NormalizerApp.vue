@@ -10,6 +10,7 @@ import { samples } from "../samples/index.js";
 import { formatOrderJson } from "../utils/formatOrderJson";
 import SourceSelector from "./SourceSelector.vue";
 import JsonPanel from "./JsonPanel.vue";
+import LoopSteps from "./LoopSteps.vue";
 
 const selectedId = ref(samples[0].id);
 const selectedSample = computed(() =>
@@ -88,7 +89,7 @@ async function analyze() {
         </section>
 
         <p v-if="error" class="mt-4 text-red-700">{{ error }}</p>
-
+        <LoopSteps class="mt-6" :result="result" :loading="loading" />
         <div class="mt-6 grid gap-4 lg:grid-cols-3">
             <JsonPanel
                 title="Raw input"

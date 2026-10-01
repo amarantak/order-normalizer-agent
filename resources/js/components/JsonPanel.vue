@@ -28,9 +28,10 @@ defineProps({
             >
         </header>
 
+        <!-- color-scheme: dark → el navegador dibuja las barras de scroll en oscuro, a tono con el panel -->
         <pre
             v-if="content"
-            class="flex-1 overflow-auto p-5 font-mono text-sm leading-relaxed"
+            class="flex-1 overflow-auto p-5 font-mono text-sm leading-relaxed [color-scheme:dark]"
             >{{ content }}</pre
         >
         <p v-else class="flex-1 p-5 text-sm text-stone-400">
