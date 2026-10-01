@@ -1,25 +1,38 @@
 <!--
-  Componente raíz de la isla de Vue.
-  PROVISORIO: un botón que analiza pos1-clean y muestra la respuesta cruda,
-  para verificar la llamada al endpoint antes de armar la UI del mockup.
+  Componente raíz de la isla de Vue: tiene el estado y es el único que llama al endpoint.
+  Los componentes hijos solo reciben datos y avisan eventos.
   Se llama NormalizerApp y no OrderNormalizer para no confundirlo con la interfaz del dominio.
 -->
 <script setup>
-import { ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { normalizeOrder } from "../api/normalizeOrder";
-import pos1Clean from "../samples/pos1-clean.json";
+import { samples } from "../samples/index.js";
+import SourceSelector from "./SourceSelector.vue";
+
+const selectedId = ref(samples[0].id);
+const selectedSample = computed(() =>
+    samples.find((sample) => sample.id === selectedId.value),
+);
 
 const loading = ref(false);
 const result = ref(null);
 const error = ref(null);
+
+// Un resultado pertenece al pedido que se analizó: al cambiar de ejemplo, se borra
+watch(selectedId, () => {
+    result.value = null;
+    error.value = null;
+});
 
 async function analyze() {
     loading.value = true;
     result.value = null;
     error.value = null;
 
+    const { source, rawOrder } = selectedSample.value;
+
     try {
-        result.value = await normalizeOrder("pos1", pos1Clean);
+        result.value = await normalizeOrder(source, rawOrder);
     } catch (e) {
         error.value = e.message;
     } finally {
@@ -31,20 +44,38 @@ async function analyze() {
 
 <template>
     <div>
-        <button
-            type="button"
-            class="rounded-md bg-slate-900 px-4 py-2 text-white hover:bg-slate-700 disabled:opacity-50"
-            :disabled="loading"
-            @click="analyze"
+        <section
+            class="flex flex-col gap-4 rounded-xl border border-stone-200 bg-white/60 p-4 lg:flex-row lg:items-center lg:justify-between"
         >
-            {{ loading ? "Analyzing…" : "Analyze pos1-clean" }}
-        </button>
+            <SourceSelector
+                v-model="selectedId"
+                :samples="samples"
+                :disabled="loading"
+            />
+
+            <button
+                type="button"
+                class="inline-flex items-center justify-center gap-2 rounded-lg bg-stone-900 px-5 py-3 font-semibold text-white hover:bg-stone-700 disabled:opacity-50"
+                :disabled="loading"
+                @click="analyze"
+            >
+                <svg
+                    aria-hidden="true"
+                    viewBox="0 0 16 16"
+                    class="h-4 w-4 fill-none stroke-current stroke-2"
+                >
+                    <path d="M4 3l9 5-9 5z" />
+                </svg>
+                {{ loading ? "Analyzing…" : "Analyze order" }}
+            </button>
+        </section>
 
         <p v-if="error" class="mt-4 text-red-700">{{ error }}</p>
 
+        <!-- PROVISORIO: lo reemplazan los paneles en los pasos siguientes -->
         <pre
             v-if="result"
-            class="mt-4 overflow-x-auto rounded-md bg-slate-900 p-4 text-sm text-slate-100"
+            class="mt-4 overflow-x-auto rounded-md bg-stone-900 p-4 text-sm text-stone-100"
             >{{ JSON.stringify(result, null, 2) }}</pre
         >
     </div>
