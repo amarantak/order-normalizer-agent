@@ -7,7 +7,9 @@
 import { computed, ref, watch } from "vue";
 import { normalizeOrder } from "../api/normalizeOrder";
 import { samples } from "../samples/index.js";
+import { formatOrderJson } from "../utils/formatOrderJson";
 import SourceSelector from "./SourceSelector.vue";
+import JsonPanel from "./JsonPanel.vue";
 
 const selectedId = ref(samples[0].id);
 const selectedSample = computed(() =>
@@ -17,6 +19,21 @@ const selectedSample = computed(() =>
 const loading = ref(false);
 const result = ref(null);
 const error = ref(null);
+
+// Texto del panel normalizado: null si todavía no hay pedido (needs_review o failed pueden venir sin order)
+const normalizedText = computed(() =>
+    result.value?.order ? formatOrderJson(result.value.order) : null,
+);
+
+const normalizedPlaceholder = computed(() => {
+    if (loading.value) {
+        return "Analyzing…";
+    }
+    if (result.value) {
+        return "No normalized order was produced. See the result.";
+    }
+    return "Run the analysis to see the normalized order.";
+});
 
 // Un resultado pertenece al pedido que se analizó: al cambiar de ejemplo, se borra
 watch(selectedId, () => {
@@ -72,11 +89,28 @@ async function analyze() {
 
         <p v-if="error" class="mt-4 text-red-700">{{ error }}</p>
 
-        <!-- PROVISORIO: lo reemplazan los paneles en los pasos siguientes -->
-        <pre
-            v-if="result"
-            class="mt-4 overflow-x-auto rounded-md bg-stone-900 p-4 text-sm text-stone-100"
-            >{{ JSON.stringify(result, null, 2) }}</pre
-        >
+        <div class="mt-6 grid gap-4 lg:grid-cols-3">
+            <JsonPanel
+                title="Raw input"
+                :subtitle="selectedSample.id"
+                :content="selectedSample.rawText"
+            />
+
+            <JsonPanel
+                title="Normalized"
+                subtitle="unified schema"
+                :content="normalizedText"
+                :placeholder="normalizedPlaceholder"
+            />
+
+            <!-- PROVISORIO: lo reemplaza ResultPanel. Muestra el resto de la respuesta, sin el order. -->
+            <pre
+                v-if="result"
+                class="overflow-auto rounded-xl bg-white p-4 text-xs text-stone-700"
+                >{{
+                    JSON.stringify({ ...result, order: undefined }, null, 2)
+                }}</pre
+            >
+        </div>
     </div>
 </template>
