@@ -90,8 +90,8 @@ async function analyze() {
         </section>
 
         <p v-if="error" class="mt-4 text-red-700">{{ error }}</p>
-        <LoopSteps class="mt-6" :result="result" :loading="loading" />
-        <div class="mt-6 grid gap-4 lg:grid-cols-3">
+        <LoopSteps class="mt-4" :result="result" :loading="loading" />
+        <div class="mt-2 grid gap-4 lg:grid-cols-3">
             <JsonPanel
                 title="Raw input"
                 :subtitle="selectedSample.id"

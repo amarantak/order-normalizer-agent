@@ -78,7 +78,7 @@ const STATE_LABELS = {
             <li
                 v-for="(step, index) in steps"
                 :key="index"
-                class="rounded-xl border p-5"
+                class="rounded-xl border p-4"
                 :class="
                     step.state === 'skipped'
                         ? 'border-dashed border-stone-300'
@@ -124,7 +124,7 @@ const STATE_LABELS = {
                     <span class="sr-only">{{ STATE_LABELS[step.state] }}</span>
                 </div>
 
-                <h3 class="mt-3 text-lg font-semibold text-stone-900">
+                <h3 class="mt-2 text-lg font-semibold text-stone-900">
                     {{ step.title }}
                 </h3>
                 <p class="mt-1 text-sm text-stone-600">{{ step.detail }}</p>

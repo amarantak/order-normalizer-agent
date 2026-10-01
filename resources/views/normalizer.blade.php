@@ -10,8 +10,8 @@
     {{-- Carga el CSS (Tailwind) y el JS (Vue) compilados por Vite --}}
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="bg-stone-100 text-stone-900 antialiased">
-    <div class="mx-auto max-w-7xl px-6 py-12">
+<body class="bg-canvas text-stone-900 antialiased">
+    <div class="mx-auto max-w-7xl px-6 py-8">
         {{-- Encabezado estático: no tiene nada reactivo, por eso lo arma Blade y no Vue --}}
         <header class="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div class="max-w-3xl">
@@ -35,7 +35,7 @@
         </header>
 
         {{-- Vue se monta en este div y maneja todo lo interactivo --}}
-        <main class="mt-8">
+        <main class="mt-6">
             <div id="app"></div>
         </main>
     </div>

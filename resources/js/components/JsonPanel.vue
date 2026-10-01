@@ -13,7 +13,7 @@ defineProps({
 
 <template>
     <section
-        class="flex min-h-[28rem] flex-col overflow-hidden rounded-xl bg-stone-900 text-stone-100"
+        class="flex min-h-64 flex-col overflow-hidden rounded-xl bg-stone-900 text-stone-100 lg:h-[32rem]"
     >
         <header
             class="flex items-center justify-between gap-4 border-b border-white/10 px-5 py-4"
@@ -31,7 +31,7 @@ defineProps({
         <!-- color-scheme: dark → el navegador dibuja las barras de scroll en oscuro, a tono con el panel -->
         <pre
             v-if="content"
-            class="flex-1 overflow-auto p-5 font-mono text-sm leading-relaxed [color-scheme:dark]"
+            class="min-h-0 flex-1 overflow-auto p-5 font-mono text-sm leading-relaxed [color-scheme:dark]"
             >{{ content }}</pre
         >
         <p v-else class="flex-1 p-5 text-sm text-stone-400">

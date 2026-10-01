@@ -23,7 +23,7 @@ const TONE_CLASSES = {
 </script>
 
 <template>
-    <div class="flex flex-col gap-4">
+    <div class="flex flex-col gap-4 lg:h-[32rem] lg:overflow-y-auto">
         <!-- Estado -->
         <section
             class="rounded-xl p-5"
