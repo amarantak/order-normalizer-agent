@@ -11,6 +11,7 @@ import { formatOrderJson } from "../utils/formatOrderJson";
 import SourceSelector from "./SourceSelector.vue";
 import JsonPanel from "./JsonPanel.vue";
 import LoopSteps from "./LoopSteps.vue";
+import ResultPanel from "./ResultPanel.vue";
 
 const selectedId = ref(samples[0].id);
 const selectedSample = computed(() =>
@@ -104,14 +105,7 @@ async function analyze() {
                 :placeholder="normalizedPlaceholder"
             />
 
-            <!-- PROVISORIO: lo reemplaza ResultPanel. Muestra el resto de la respuesta, sin el order. -->
-            <pre
-                v-if="result"
-                class="overflow-auto rounded-xl bg-white p-4 text-xs text-stone-700"
-                >{{
-                    JSON.stringify({ ...result, order: undefined }, null, 2)
-                }}</pre
-            >
+            <ResultPanel :result="result" :loading="loading" />
         </div>
     </div>
 </template>
